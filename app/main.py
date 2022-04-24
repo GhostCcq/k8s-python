@@ -118,10 +118,10 @@ async def getDestinationRule(namespace: str, configString: str, destination: Opt
 
 
 def init_cluster(configstring):
-    with open('../kube_config', 'w+', encoding='utf-8') as f:
+    with open('./kube_config', 'w+', encoding='utf-8') as f:
         f.write(configstring)
     try:
-        config.load_kube_config('../kube_config')
+        config.load_kube_config('./kube_config')
     except ApiException as e:
         print(e)
 
