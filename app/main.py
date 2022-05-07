@@ -152,6 +152,35 @@ def getDestinationRule(params: Params):
         return JSONResponse(content={'Code': 2999, 'Msg': e.body})
 
 
+@app.post("/getDeployment")    # 获取Deployment信息
+def getDeployment(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+
+    namespace = params.namespace
+    deployment = params.deployment
+    k8s_apps_v1 = client.AppsV1Api()
+
+    try:
+        ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace)
+        return JSONResponse(content={'Code': 1002, 'Msg': ret.metadata.name})
+    except ApiException as e:
+        return JSONResponse(content={'Code': 2999, 'Msg': e.body})
+
+
+@app.post("/getService")    # 获取Service信息
+def getService(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+
+    namespace = params.namespace
+    service = params.service
+    k8s_Core_v1 = client.CoreV1Api()
+    try:
+        ret = k8s_Core_v1.read_namespaced_service(name=service, namespace=namespace)
+        return JSONResponse(content={'Code': 1002, 'Msg': ret.metadata.name})
+    except ApiException as e:
+        return JSONResponse(content={'Code': 2999, 'Msg': e.body})
+
+
 @app.delete("/delDestinationRule")
 def delDestinationRule(params: Params):
     init_cluster(params.configString)  # 加载集群认证配置信息
@@ -180,6 +209,42 @@ def delVirtualService(params: Params):
         if ret.status_code == 200:
             res = v1.delete_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="virtualservices", namespace=namespace, name=virtualService)
             return JSONResponse(content={'Code': '1004', 'Msg': res})
+    except ApiException as e:
+        return JSONResponse(content={'Code': '2998', 'Msg': e.body})
+
+
+@app.delete("/delDeployment")
+def delDeployment(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+    namespace = params.namespace
+    deployment = params.deployment
+    k8s_apps_v1 = client.AppsV1Api()
+
+    if deployment == None:
+        return JSONResponse(content={'Code': '2404', 'Msg': 'DeploymentName is None'})
+    try:
+        # ret = getDeployment(params)
+        # if ret.status_code == 200:
+        res = k8s_apps_v1.delete_namespaced_deployment(name=deployment, namespace=namespace)
+        return JSONResponse(content={'Code': '1004', 'Msg': res.status})
+    except ApiException as e:
+        return JSONResponse(content={'Code': '2998', 'Msg': e.body})
+
+
+@app.delete("/delService")
+def delService(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+    namespace = params.namespace
+    service = params.service
+    k8s_Core_v1 = client.CoreV1Api()
+
+    if service == None:
+        return JSONResponse(content={'Code': '2404', 'Msg': 'ServiceName is None'})
+    try:
+        # ret = getService(params)
+        # if ret.status_code == 200:
+        res = k8s_Core_v1.delete_namespaced_service(name=service, namespace=namespace)
+        return JSONResponse(content={'Code': '1004', 'Msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'Code': '2998', 'Msg': e.body})
 
