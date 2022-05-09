@@ -226,7 +226,10 @@ def delDeployment(params: Params):
         # ret = getDeployment(params)
         # if ret.status_code == 200:
         res = k8s_apps_v1.delete_namespaced_deployment(name=deployment, namespace=namespace)
-        return JSONResponse(content={'Code': '1004', 'Msg': res.status})
+        if res.status != 'Success':   # 不知道为什么在容器中res.status拿到的值都是None
+            return JSONResponse(content={'Code': '1004', 'Msg': 'Success'})
+        else:
+            return JSONResponse(content={'Code': '1004', 'Msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'Code': '2998', 'Msg': e.body})
 
@@ -244,7 +247,11 @@ def delService(params: Params):
         # ret = getService(params)
         # if ret.status_code == 200:
         res = k8s_Core_v1.delete_namespaced_service(name=service, namespace=namespace)
-        return JSONResponse(content={'Code': '1004', 'Msg': res.status})
+        print(res)
+        if res.status != 'Success':   # 不知道为什么在容器中res.status拿到的值都是None
+            return JSONResponse(content={'Code': '1004', 'Msg': 'Success'})
+        else:
+            return JSONResponse(content={'Code': '1004', 'Msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'Code': '2998', 'Msg': e.body})
 
