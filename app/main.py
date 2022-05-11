@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+import json
 
 app = FastAPI()
 
@@ -160,8 +161,9 @@ def getDeployment(params: Params):
     k8s_apps_v1 = client.AppsV1Api()
 
     try:
-        ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace)
-        return JSONResponse(content={'Code': 1002, 'Msg': ret.metadata.name})
+        ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace, _preload_content=False).read()
+
+        return JSONResponse(content={'Code': 1002, 'Msg': json.loads(ret.decode("UTF-8"))})
     except ApiException as e:
         return JSONResponse(content={'Code': 2999, 'Msg': e.body})
 
@@ -174,8 +176,25 @@ def getService(params: Params):
     service = params.service
     k8s_Core_v1 = client.CoreV1Api()
     try:
-        ret = k8s_Core_v1.read_namespaced_service(name=service, namespace=namespace)
-        return JSONResponse(content={'Code': 1002, 'Msg': ret.metadata.name})
+        ret = k8s_Core_v1.read_namespaced_service(name=service, namespace=namespace, _preload_content=False).read()
+
+        return JSONResponse(content={'Code': 1002, 'Msg': json.loads(ret.decode("UTF-8"))})
+    except ApiException as e:
+        return JSONResponse(content={'Code': 2999, 'Msg': e.body})
+
+
+@app.post("/getPods")
+def getPods(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+
+    namespace = params.namespace
+    deployment = params.deployment
+    core_v1 = client.CoreV1Api()
+
+    try:
+        pods_ret = core_v1.list_namespaced_pod(namespace=namespace, label_selector=f"app={deployment[:deployment.index('-deployment')]}", watch=False, _preload_content=False).read()
+
+        return JSONResponse(content={'Code': 1002, 'Msg': json.loads(pods_ret)})
     except ApiException as e:
         return JSONResponse(content={'Code': 2999, 'Msg': e.body})
 
