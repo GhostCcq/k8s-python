@@ -8,7 +8,6 @@ from fastapi.responses import JSONResponse
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
-
 app = FastAPI()
 
 
@@ -17,10 +16,10 @@ class Params(BaseModel):
     virtualService: Optional[str] = None
     deployment: Optional[str] = None
     service: Optional[str] = None
+    replicas: Optional[int] = None
     namespace: str
     configString: str
     content: Optional[dict] = None
-
 
 
 @app.post("/applyService")    # 更新Service信息
@@ -247,13 +246,27 @@ def delService(params: Params):
         # ret = getService(params)
         # if ret.status_code == 200:
         res = k8s_Core_v1.delete_namespaced_service(name=service, namespace=namespace)
-        print(res)
         if res.status != 'Success':   # 不知道为什么在容器中res.status拿到的值都是None
             return JSONResponse(content={'Code': '1004', 'Msg': 'Success'})
         else:
             return JSONResponse(content={'Code': '1004', 'Msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'Code': '2998', 'Msg': e.body})
+
+
+@app.post("/modifyDeployment")
+def modifyDeployment(params: Params):
+    init_cluster(params.configString)  # 加载集群认证配置信息
+    replicas_body = {'spec': {'replicas': params.replicas}}
+    namespace = params.namespace
+    deployment = params.deployment
+    k8s_apps_v1 = client.AppsV1Api()
+    try:
+        ret = k8s_apps_v1.patch_namespaced_deployment_scale(name=deployment, namespace=namespace, body=replicas_body)
+        return JSONResponse(content={'Code': 1001, 'Msg': 'Modify succeed!!!', 'Ret': {'Name': deployment, 'replicas': ret.spec.replicas}})
+    except ApiException as e:
+        return JSONResponse(content={'Code': '2998', 'Msg': e.body})
+
 
 def init_cluster(configstring):
     with open('./kube_config', 'w+', encoding='utf-8') as f:
