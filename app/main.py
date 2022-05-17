@@ -18,6 +18,7 @@ class Params(BaseModel):
     deployment: Optional[str] = None
     service: Optional[str] = None
     replicas: Optional[int] = None
+    labelSelector: Optional[str] = None
     namespace: str
     configString: str
     content: Optional[dict] = None
@@ -188,11 +189,13 @@ def getPods(params: Params):
     init_cluster(params.configString)  # 加载集群认证配置信息
 
     namespace = params.namespace
-    deployment = params.deployment
+    # deployment = params.deployment
+    labelSelector = params.labelSelector
     core_v1 = client.CoreV1Api()
 
     try:
-        pods_ret = core_v1.list_namespaced_pod(namespace=namespace, label_selector=f"app={deployment[:deployment.index('-deployment')]}", watch=False, _preload_content=False).read()
+        pods_ret = core_v1.list_namespaced_pod(namespace=namespace, label_selector=labelSelector,watch=False, _preload_content=False).read()
+
 
         return JSONResponse(content={'code': 1002, 'msg': json.loads(pods_ret)})
     except ApiException as e:
