@@ -210,9 +210,9 @@ def delDestinationRule(params: Params):
         ret = getDestinationRule(params)
         if ret.status_code == 200:
             res = v1.delete_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="destinationrules", namespace=namespace, name=destination)
-            return JSONResponse(content={'code': '1004', 'msg': res})
+            return JSONResponse(content={'code': 1004, 'msg': res})
     except ApiException as e:
-        return JSONResponse(content={'code': '2998', 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': e.body})
 
 
 @app.delete("/delVirtualService")
@@ -226,9 +226,9 @@ def delVirtualService(params: Params):
         ret = getVirtualService(params)
         if ret.status_code == 200:
             res = v1.delete_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="virtualservices", namespace=namespace, name=virtualService)
-            return JSONResponse(content={'code': '1004', 'msg': res})
+            return JSONResponse(content={'code': 1004, 'msg': res})
     except ApiException as e:
-        return JSONResponse(content={'code': '2998', 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': e.body})
 
 
 @app.delete("/delDeployment")
@@ -239,17 +239,17 @@ def delDeployment(params: Params):
     k8s_apps_v1 = client.AppsV1Api()
 
     if deployment == None:
-        return JSONResponse(content={'code': '2404', 'msg': 'DeploymentName is None'})
+        return JSONResponse(content={'code': 2404, 'msg': 'DeploymentName is None'})
     try:
         # ret = getDeployment(params)
         # if ret.status_code == 200:
         res = k8s_apps_v1.delete_namespaced_deployment(name=deployment, namespace=namespace)
         if res.status != 'Success':   # 不知道为什么在容器中res.status拿到的值都是None
-            return JSONResponse(content={'code': '1004', 'msg': 'Success'})
+            return JSONResponse(content={'code': 1004, 'msg': 'Success'})
         else:
-            return JSONResponse(content={'code': '1004', 'msg': res.status})
+            return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
-        return JSONResponse(content={'code': '2998', 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': e.body})
 
 
 @app.delete("/delService")
@@ -260,17 +260,17 @@ def delService(params: Params):
     k8s_Core_v1 = client.CoreV1Api()
 
     if service == None:
-        return JSONResponse(content={'code': '2404', 'msg': 'ServiceName is None'})
+        return JSONResponse(content={'code': 2404, 'msg': 'ServiceName is None'})
     try:
         # ret = getService(params)
         # if ret.status_code == 200:
         res = k8s_Core_v1.delete_namespaced_service(name=service, namespace=namespace)
         if res.status != 'Success':   # 不知道为什么在容器中res.status拿到的值都是None
-            return JSONResponse(content={'code': '1004', 'msg': 'Success'})
+            return JSONResponse(content={'code': 1004, 'msg': 'Success'})
         else:
-            return JSONResponse(content={'code': '1004', 'msg': res.status})
+            return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
-        return JSONResponse(content={'code': '2998', 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': e.body})
 
 
 @app.post("/modifyDeployment")
@@ -284,7 +284,7 @@ def modifyDeployment(params: Params):
         ret = k8s_apps_v1.patch_namespaced_deployment_scale(name=deployment, namespace=namespace, body=replicas_body)
         return JSONResponse(content={'code': 1001, 'msg': 'Modify succeed!!!', 'data': {'name': deployment, 'replicas': ret.spec.replicas}})
     except ApiException as e:
-        return JSONResponse(content={'code': '2998', 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': e.body})
 
 
 def init_cluster(configstring):
