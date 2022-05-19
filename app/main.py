@@ -1,6 +1,7 @@
 #!/bin/env python
 # -*- coding: utf-8 -*-
-
+import os
+import tempfile
 from typing import Optional
 from pydantic import BaseModel
 from fastapi import FastAPI
@@ -29,7 +30,8 @@ def applyService(params: Params):
     namespace = params.namespace
     service = params.service
     content = params.content
-    init_cluster(params.configString)   # 加载集群认证配置信息
+
+    config_file = init_cluster(params.configString)   # 加载集群认证配置信息
 
     k8s_Core_v1 = client.CoreV1Api()
     # 先查询是否有对应资源，如果不存在做异常处理，进行创建。如果存在则进行更新
@@ -44,14 +46,18 @@ def applyService(params: Params):
     else:
         ret = k8s_Core_v1.patch_namespaced_service(name=service, body=content, namespace=namespace)
         return JSONResponse(content={'code': 1001, 'msg': f'{ret.metadata.name} Update succeed!!!'})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/applyDeployment")    # 更新Deployment信息
 def applyDeployment(params: Params):
     namespace = params.namespace
-    init_cluster(params.configString)   # 加载集群认证配置信息
     deployment = params.deployment
     content = params.content
+
+    config_file = init_cluster(params.configString)   # 加载集群认证配置信息
+
     k8s_apps_v1 = client.AppsV1Api()
     try:
         ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace)
@@ -64,14 +70,18 @@ def applyDeployment(params: Params):
     else:
         ret = k8s_apps_v1.patch_namespaced_deployment(name=deployment, body=content, namespace=namespace)
         return JSONResponse(content={'code': 1001, 'msg': f'{ret.metadata.name} Update succeed!!!'})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/applyVirtualService")    # 更新VirtualService信息
 def applyVirtualService(params: Params):
     namespace = params.namespace
-    init_cluster(params.configString)    # 加载集群认证配置信息
     virtualService = params.virtualService
     content = params.content
+
+    config_file = init_cluster(params.configString)    # 加载集群认证配置信息
+
     v1 = client.CustomObjectsApi()
     # 先获取dr资源是否存在，如果不存在则进行create，如果存在则进行patch
     try:
@@ -89,16 +99,19 @@ def applyVirtualService(params: Params):
             return JSONResponse(content={'code': 1001, 'msg': 'Update succeed!!!', 'data': ret})
         except ApiException as e:
             return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/applyDestinationRule")    # 更新DestinationRule信息
 def applyDestinationRule(params: Params):
     namespace = params.namespace
-    init_cluster(params.configString)   # 加载集群认证配置信息
     destination = params.destination
     content = params.content
-    v1 = client.CustomObjectsApi()
 
+    config_file = init_cluster(params.configString)   # 加载集群认证配置信息
+
+    v1 = client.CustomObjectsApi()
     # 先获取dr资源是否存在，如果不存在则进行create，如果存在则进行patch
     try:
         ret = v1.get_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="destinationrules", namespace=namespace, name=destination)   # 获取dr资源是否存在
@@ -115,13 +128,16 @@ def applyDestinationRule(params: Params):
 
         except ApiException as e:
             return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/getVirtualService")    # 获取VirtualService信息
 def getVirtualService(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     namespace = params.namespace
     virtualService = params.virtualService
+
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
 
     v1 = client.CustomObjectsApi()
     try:
@@ -133,16 +149,18 @@ def getVirtualService(params: Params):
         return JSONResponse(content={'code': 1002, 'msg': ret})
     except ApiException as e:
         return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/getDestinationRule")    # 获取DestinationRule信息
 def getDestinationRule(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
-
     namespace = params.namespace
     destination = params.destination
-    v1 = client.CustomObjectsApi()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    v1 = client.CustomObjectsApi()
     try:
         if destination != None:
             ret = v1.get_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="destinationrules", namespace=namespace, name=destination)
@@ -151,30 +169,35 @@ def getDestinationRule(params: Params):
         return JSONResponse(content={'code': 1002, 'msg': ret})
     except ApiException as e:
         return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/getDeployment")    # 获取Deployment信息
 def getDeployment(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
-
     namespace = params.namespace
     deployment = params.deployment
-    k8s_apps_v1 = client.AppsV1Api()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    k8s_apps_v1 = client.AppsV1Api()
     try:
         ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace, _preload_content=False).read()
 
         return JSONResponse(content={'code': 1002, 'msg': json.loads(ret.decode("UTF-8"))})
     except ApiException as e:
         return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/getService")    # 获取Service信息
 def getService(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
-
     namespace = params.namespace
     service = params.service
+
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
     k8s_Core_v1 = client.CoreV1Api()
     try:
         ret = k8s_Core_v1.read_namespaced_service(name=service, namespace=namespace, _preload_content=False).read()
@@ -182,33 +205,36 @@ def getService(params: Params):
         return JSONResponse(content={'code': 1002, 'msg': json.loads(ret.decode("UTF-8"))})
     except ApiException as e:
         return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/getPods")
 def getPods(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
-
     namespace = params.namespace
     # deployment = params.deployment
     labelSelector = params.labelSelector
-    core_v1 = client.CoreV1Api()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    core_v1 = client.CoreV1Api()
     try:
         pods_ret = core_v1.list_namespaced_pod(namespace=namespace, label_selector=labelSelector,watch=False, _preload_content=False).read()
-
-
         return JSONResponse(content={'code': 1002, 'msg': json.loads(pods_ret)})
     except ApiException as e:
         return JSONResponse(content={'code': 2999, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.delete("/delDestinationRule")
 def delDestinationRule(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     namespace = params.namespace
     destination = params.destination
-    v1 = client.CustomObjectsApi()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    v1 = client.CustomObjectsApi()
     try:
         ret = getDestinationRule(params)
         if ret.status_code == 200:
@@ -216,15 +242,18 @@ def delDestinationRule(params: Params):
             return JSONResponse(content={'code': 1004, 'msg': res})
     except ApiException as e:
         return JSONResponse(content={'code': 2998, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.delete("/delVirtualService")
 def delVirtualService(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     namespace = params.namespace
     virtualService = params.virtualService
-    v1 = client.CustomObjectsApi()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    v1 = client.CustomObjectsApi()
     try:
         ret = getVirtualService(params)
         if ret.status_code == 200:
@@ -232,15 +261,18 @@ def delVirtualService(params: Params):
             return JSONResponse(content={'code': 1004, 'msg': res})
     except ApiException as e:
         return JSONResponse(content={'code': 2998, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.delete("/delDeployment")
 def delDeployment(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     namespace = params.namespace
     deployment = params.deployment
-    k8s_apps_v1 = client.AppsV1Api()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    k8s_apps_v1 = client.AppsV1Api()
     if deployment == None:
         return JSONResponse(content={'code': 2404, 'msg': 'DeploymentName is None'})
     try:
@@ -253,15 +285,18 @@ def delDeployment(params: Params):
             return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'code': 2998, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.delete("/delService")
 def delService(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     namespace = params.namespace
     service = params.service
-    k8s_Core_v1 = client.CoreV1Api()
 
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
+    k8s_Core_v1 = client.CoreV1Api()
     if service == None:
         return JSONResponse(content={'code': 2404, 'msg': 'ServiceName is None'})
     try:
@@ -274,24 +309,37 @@ def delService(params: Params):
             return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
         return JSONResponse(content={'code': 2998, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 @app.post("/modifyDeployment")
 def modifyDeployment(params: Params):
-    init_cluster(params.configString)  # 加载集群认证配置信息
     replicas_body = {'spec': {'replicas': params.replicas}}
     namespace = params.namespace
     deployment = params.deployment
+
+    config_file = init_cluster(params.configString)  # 加载集群认证配置信息
+
     k8s_apps_v1 = client.AppsV1Api()
     try:
         ret = k8s_apps_v1.patch_namespaced_deployment_scale(name=deployment, namespace=namespace, body=replicas_body)
         return JSONResponse(content={'code': 1001, 'msg': 'Modify succeed!!!', 'data': {'name': deployment, 'replicas': ret.spec.replicas}})
     except ApiException as e:
         return JSONResponse(content={'code': 2998, 'msg': e.body})
+    finally:
+        os.remove(config_file)
 
 
 def init_cluster(configstring):
-    with open('./kube_config', 'w+', encoding='utf-8') as f:
-        f.write(configstring)
-    config.load_kube_config('./kube_config')
+    config_file = create_temp_file(configstring)
+    config.load_kube_config(config_file=config_file)
+    return config_file
+
+
+def create_temp_file(content=""):
+    handler, name = tempfile.mkstemp()
+    os.write(handler, str.encode(content))
+    os.close(handler)
+    return name
 
