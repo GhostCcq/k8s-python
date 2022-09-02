@@ -42,7 +42,7 @@ def applyService(params: Params):
             ret = k8s_Core_v1.create_namespaced_service(body=content, namespace=namespace)
             return JSONResponse(content={'code': 1000, 'msg': f'{ret.metadata.name} Create succeed!!!'})
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     else:
         ret = k8s_Core_v1.patch_namespaced_service(name=service, body=content, namespace=namespace)
         return JSONResponse(content={'code': 1001, 'msg': f'{ret.metadata.name} Update succeed!!!'})
@@ -66,7 +66,7 @@ def applyDeployment(params: Params):
             ret = k8s_apps_v1.create_namespaced_deployment(body=content, namespace=namespace)
             return JSONResponse(content={'code': 1000, 'msg': f'{ret.metadata.name} Create succeed!!!'})
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     else:
         ret = k8s_apps_v1.patch_namespaced_deployment(name=deployment, body=content, namespace=namespace)
         return JSONResponse(content={'code': 1001, 'msg': f'{ret.metadata.name} Update succeed!!!'})
@@ -92,13 +92,13 @@ def applyVirtualService(params: Params):
 
             return JSONResponse(content={'code': 1000, 'msg': 'Create succeed!!!', 'data': ret})
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     else:
         try:
             ret = v1.patch_namespaced_custom_object(group="networking.istio.io", version="v1beta1", plural="virtualservices", name=virtualService, namespace=namespace, body=content)
             return JSONResponse(content={'code': 1001, 'msg': 'Update succeed!!!', 'data': ret})
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -120,14 +120,14 @@ def applyDestinationRule(params: Params):
             ret = v1.create_namespaced_custom_object(group="networking.istio.io", version="v1beta1", plural="destinationrules", namespace=namespace, body=content)
             return JSONResponse(content={'code': 1000, 'msg': 'Create succeed!!!', 'data': ret})
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     else:
         try:
             ret = v1.patch_namespaced_custom_object(group="networking.istio.io", version="v1beta1", plural="destinationrules", name=destination, namespace=namespace, body=content)
             return JSONResponse(content={'code': 1001, 'msg': 'Update succeed!!!', 'data': ret})
 
         except ApiException as e:
-            return JSONResponse(content={'code': 2999, 'msg': e.body})
+            return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -148,7 +148,7 @@ def getVirtualService(params: Params):
 
         return JSONResponse(content={'code': 1002, 'msg': ret})
     except ApiException as e:
-        return JSONResponse(content={'code': 2999, 'msg': e.body})
+        return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -168,7 +168,7 @@ def getDestinationRule(params: Params):
             ret = v1.list_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="destinationrules", namespace=namespace)   # 如果没有指定资源名称，则输出获取到的全部资源列表
         return JSONResponse(content={'code': 1002, 'msg': ret})
     except ApiException as e:
-        return JSONResponse(content={'code': 2999, 'msg': e.body})
+        return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -177,16 +177,17 @@ def getDestinationRule(params: Params):
 def getDeployment(params: Params):
     namespace = params.namespace
     deployment = params.deployment
+    labelSelector = params.labelSelector
 
     config_file = init_cluster(params.configString)  # 加载集群认证配置信息
 
     k8s_apps_v1 = client.AppsV1Api()
     try:
-        ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace, _preload_content=False).read()
+        ret = k8s_apps_v1.read_namespaced_deployment(name=deployment, namespace=namespace,_preload_content=False).read()
 
         return JSONResponse(content={'code': 1002, 'msg': json.loads(ret.decode("UTF-8"))})
     except ApiException as e:
-        return JSONResponse(content={'code': 2999, 'msg': e.body})
+        return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -204,7 +205,7 @@ def getService(params: Params):
 
         return JSONResponse(content={'code': 1002, 'msg': json.loads(ret.decode("UTF-8"))})
     except ApiException as e:
-        return JSONResponse(content={'code': 2999, 'msg': e.body})
+        return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -220,9 +221,9 @@ def getPods(params: Params):
     core_v1 = client.CoreV1Api()
     try:
         pods_ret = core_v1.list_namespaced_pod(namespace=namespace, label_selector=labelSelector,watch=False, _preload_content=False).read()
-        return JSONResponse(content={'code': 1002, 'msg': json.loads(pods_ret)})
+        return JSONResponse(content={'code': 1002, 'msg': json.loads(pods_ret.decode("UTF-8"))})
     except ApiException as e:
-        return JSONResponse(content={'code': 2999, 'msg': e.body})
+        return JSONResponse(content={'code': 2999, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -239,9 +240,9 @@ def delDestinationRule(params: Params):
         ret = getDestinationRule(params)
         if ret.status_code == 200:
             res = v1.delete_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="destinationrules", namespace=namespace, name=destination)
-            return JSONResponse(content={'code': 1004, 'msg': res})
+            return JSONResponse(content={'code': 1004, 'msg': json.loads(res.decode("UTF-8"))})
     except ApiException as e:
-        return JSONResponse(content={'code': 2998, 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -258,9 +259,9 @@ def delVirtualService(params: Params):
         ret = getVirtualService(params)
         if ret.status_code == 200:
             res = v1.delete_namespaced_custom_object(group="networking.istio.io", version="v1alpha3", plural="virtualservices", namespace=namespace, name=virtualService)
-            return JSONResponse(content={'code': 1004, 'msg': res})
+            return JSONResponse(content={'code': 1004, 'msg': json.loads(res.decode("UTF-8"))})
     except ApiException as e:
-        return JSONResponse(content={'code': 2998, 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -284,7 +285,7 @@ def delDeployment(params: Params):
         else:
             return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
-        return JSONResponse(content={'code': 2998, 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -308,7 +309,7 @@ def delService(params: Params):
         else:
             return JSONResponse(content={'code': 1004, 'msg': res.status})
     except ApiException as e:
-        return JSONResponse(content={'code': 2998, 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
@@ -326,7 +327,7 @@ def modifyDeployment(params: Params):
         ret = k8s_apps_v1.patch_namespaced_deployment_scale(name=deployment, namespace=namespace, body=replicas_body)
         return JSONResponse(content={'code': 1001, 'msg': 'Modify succeed!!!', 'data': {'name': deployment, 'replicas': ret.spec.replicas}})
     except ApiException as e:
-        return JSONResponse(content={'code': 2998, 'msg': e.body})
+        return JSONResponse(content={'code': 2998, 'msg': json.loads(e.body.decode("UTF-8"))})
     finally:
         os.remove(config_file)
 
